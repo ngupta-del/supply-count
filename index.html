@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Year-end supply count</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #17303B;
+    --muted: #5B6F78;
+    --paper: #F3F6F7;
+    --surface: #FFFFFF;
+    --line: #D3DCE0;
+    --glove: #2F5BD3;
+    --glove-ink: #FFFFFF;
+    --glove-soft: #E6ECFB;
+    --warn: #9A5600;
+    --warn-soft: #FFF4E0;
+    --bad: #B3261E;
+    --ok: #1E7A4C;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E3ECEF; --muted: #9AAEB6; --paper: #10191D; --surface: #18242A; --line: #2C3D45;
+      --glove: #7C9CF5; --glove-ink: #0D1630; --glove-soft: #1D2A4D;
+      --warn: #F0B35C; --warn-soft: #33270F; --bad: #FF8A80; --ok: #6FD3A0;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 17px/1.45 "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 0 16px 120px; }
+  [hidden] { display: none !important; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 32px 0 8px; }
+  p { margin: 0 0 16px; }
+  .lede { color: var(--muted); }
+  label.field { display: block; margin: 0 0 16px; font-weight: 700; }
+  label.field span { display: block; margin-bottom: 6px; }
+  select, input, textarea {
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1.5px solid var(--line); border-radius: 10px; width: 100%;
+  }
+  select, label.field input { padding: 12px; min-height: 48px; }
+  :focus-visible { outline: 3px solid var(--glove); outline-offset: 2px; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; min-height: 48px; padding: 10px 18px; }
+  .primary { background: var(--glove); color: var(--glove-ink); border: 0; font-weight: 700; width: 100%; }
+  .primary:disabled { opacity: .45; cursor: default; }
+  .quiet { background: transparent; color: var(--glove); border: 1.5px solid var(--line); width: 100%; margin-top: 10px; }
+  .err { color: var(--bad); font-weight: 700; min-height: 1.4em; }
+
+  /* Confirm: the one bold moment, so nobody counts under the wrong name */
+  .who-card { background: var(--glove); color: var(--glove-ink); border-radius: 16px; padding: 24px; margin: 32px 0 20px; }
+  .who-card .for { margin: 0; opacity: .85; }
+  .who-card .name { font-size: 2.2rem; line-height: 1.1; font-weight: 700; margin: 6px 0 10px; overflow-wrap: anywhere; }
+  .who-card .where { margin: 0; font-size: 1.05rem; }
+  .draft-line { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+
+  /* Top bar on the count screen */
+  .bar {
+    position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1.5px solid var(--line);
+    padding: 10px 16px;
+  }
+  .bar-in { max-width: 680px; margin: 0 auto; }
+  .bar-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .bar .who { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .save { font-size: .9rem; color: var(--muted); white-space: nowrap; }
+  .save.ok { color: var(--ok); } .save.warn { color: var(--warn); } .save.bad { color: var(--bad); }
+  .tools { display: flex; gap: 8px; margin-top: 8px; }
+  .tools input { padding: 10px 12px; min-height: 44px; }
+  .toggle { white-space: nowrap; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); min-height: 44px; padding: 8px 12px; }
+  .toggle[aria-pressed="true"] { background: var(--glove-soft); border-color: var(--glove); color: var(--ink); }
+
+  /* Sections and items */
+  .sec { margin-top: 14px; }
+  .sec > button {
+    width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); text-align: left; font-weight: 700;
+  }
+  .sec.open > button { border-radius: 10px 10px 0 0; }
+  .sec .tally { font-weight: 400; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sec .tally.done { color: var(--ok); }
+  .sec .body { display: none; border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px; background: var(--surface); }
+  .sec.open .body { display: block; }
+  .item { padding: 14px 14px 12px; border-top: 1px solid var(--line); }
+  .item:first-child { border-top: 0; }
+  .item .d { font-weight: 700; }
+  .item .m { color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+  .fields { display: flex; flex-wrap: wrap; gap: 8px; }
+  .f { flex: 1 1 64px; max-width: 120px; }
+  .f span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
+  .f input { padding: 8px 10px; min-height: 46px; font-size: 1.15rem; font-variant-numeric: tabular-nums; text-align: center; }
+  .f input.has { border-color: var(--glove); background: var(--glove-soft); }
+  .item .warn-msg { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: .92rem; }
+  .note-btn { background: none; border: 0; color: var(--glove); padding: 6px 0 0; min-height: 36px; font-size: .92rem; }
+  .item textarea { margin-top: 6px; padding: 8px 10px; min-height: 64px; font-size: 1rem; }
+  .empty { padding: 24px 0; color: var(--muted); }
+
+  /* Bottom bar */
+  .foot {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1.5px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .foot-in { max-width: 680px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+  .foot .prog { flex: 1; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .foot .prog strong { color: var(--ink); }
+  .foot .primary { width: auto; }
+
+  dialog { border: 0; border-radius: 16px; padding: 22px; width: min(92vw, 520px); background: var(--surface); color: var(--ink); }
+  dialog::backdrop { background: rgba(10, 20, 25, .5); }
+  dialog h2 { margin: 0 0 12px; font-size: 1.35rem; }
+  dialog ul { padding-left: 20px; margin: 0 0 14px; max-height: 30vh; overflow: auto; }
+  .stat { font-size: 1.05rem; margin-bottom: 6px; }
+  .done-mark { font-size: 3rem; line-height: 1; margin-top: 40px; color: var(--ok); }
+  @media (prefers-reduced-motion: no-preference) { .sec.open .body { animation: drop .15s ease-out; } }
+  @keyframes drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar" hidden>
+  <div class="bar-in">
+    <div class="bar-row">
+      <div class="who" id="barWho"></div>
+      <div class="save" id="save" role="status" aria-live="polite"></div>
+    </div>
+    <div class="tools">
+      <input id="search" type="search" placeholder="Find an item" aria-label="Find an item" autocomplete="off">
+      <button class="toggle" id="onlyBlank" aria-pressed="false">Not entered</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- 1. Pick -->
+  <section id="pick">
+    <h1>Year-end supply count</h1>
+    <p class="lede" id="pickLede">Loading the count list…</p>
+    <label class="field"><span>State</span><select id="state" disabled></select></label>
+    <label class="field"><span>Your name</span><select id="person" disabled></select></label>
+    <label class="field" id="checkWrap" hidden><span>Van number</span>
+      <input id="check" inputmode="numeric" autocomplete="off"></label>
+    <p class="err" id="pickErr" role="alert"></p>
+    <button class="primary" id="nextBtn" disabled>Next</button>
+  </section>
+
+  <!-- 2. Confirm -->
+  <section id="confirm" hidden>
+    <div class="who-card">
+      <p class="for">You're counting for</p>
+      <div class="name" id="cName"></div>
+      <p class="where" id="cWhere"></p>
+    </div>
+    <div class="draft-line" id="cDraft"></div>
+    <p></p>
+    <button class="primary" id="goBtn">Start counting</button>
+    <button class="quiet" id="notMeBtn">That's not me</button>
+  </section>
+
+  <!-- 3. Count -->
+  <section id="count" hidden>
+    <p class="lede" style="margin-top:16px">Enter what's on hand. Leave a box blank if you have none. Everything saves as you type.</p>
+    <div id="list"></div>
+    <p class="empty" id="noMatch" hidden>No items match. Clear the search to see everything.</p>
+  </section>
+
+  <!-- 4. Done / locked -->
+  <section id="done" hidden>
+    <div class="done-mark" aria-hidden="true">✓</div>
+    <h1 id="doneTitle">Count submitted</h1>
+    <p id="doneText"></p>
+    <button class="quiet" id="startOverBtn">Count for someone else</button>
+  </section>
+</main>
+
+<div class="foot" id="foot" hidden>
+  <div class="foot-in">
+    <div class="prog" id="prog"></div>
+    <button class="primary" id="reviewBtn">Review and submit</button>
+  </div>
+</div>
+
+<dialog id="review">
+  <h2>Review your count</h2>
+  <div id="rBody"></div>
+  <p class="err" id="rErr" role="alert"></p>
+  <button class="primary" id="submitBtn">Submit count</button>
+  <button class="quiet" id="keepBtn">Keep editing</button>
+</dialog>
+
+<script>
+(function () {
+  'use strict';
+  // ▼ Paste your Apps Script web app URL here (ends in /exec)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzkfeCyAdOM1fImHFy4LSnZjMx2Uot1ithVYEyEBsCF6E26laPks_rm_OupmyIerE_dZA/exec';
+
+  const FIELDS = [
+    { f: 'l', label: 'Loose units' },
+    { f: 'f', label: 'Full packages' },
+    { f: 'q', label: '¼ full' },
+    { f: 'h', label: '½ full' },
+    { f: 't', label: '¾ full' }
+  ];
+  const SAVE_DELAY = 3000;
+  const $ = id => document.getElementById(id);
+  const S = { sites: [], site: null, check: '', items: [], byKey: {}, data: {}, dirty: {},
+              inflight: false, timer: null, retry: 0, locked: false };
+
+  // ---------- local backup (best effort) ----------
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  const localKey = () => 'sc:draft:' + S.site.id;
+  const saveLocal = () => store.set(localKey(), { data: S.data, dirty: S.dirty, t: Date.now() });
+
+  // Sends a request to the Apps Script back end. No Google login is involved,
+  // so people signed into several Google accounts are fine.
+  function run(fn, args, ok, fail) {
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: fn, args: args }),   // plain text body: no CORS preflight
+      credentials: 'omit',
+      redirect: 'follow',
+      keepalive: fn === 'saveDraft'                       // lets a save finish if the page is closing
+    })
+      .then(r => r.json())
+      .then(res => res.ok ? ok(res.result) : fail(new Error(res.error)))
+      .catch(() => fail(new Error('NETWORK')));
+  }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const errText = e => { const m = String((e && e.message) || e); return m === 'NETWORK' ? '' : m.replace(/^(Error: )?(CHECK|NOT_FOUND|SUBMITTED): /, ''); };
+  function show(id) {
+    ['pick', 'confirm', 'count', 'done'].forEach(s => { $(s).hidden = s !== id; });
+    $('bar').hidden = $('foot').hidden = id !== 'count';
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- 1. pick ----------
+  run('getSetup', [], res => {
+    S.sites = res.sites;
+    const states = [...new Set(S.sites.map(s => s.state))].sort();
+    $('state').innerHTML = '<option value="">Choose your state</option>' +
+      states.map(s => `<option>${esc(s)}</option>`).join('');
+    $('state').disabled = false;
+    $('pickLede').textContent = 'Pick your state and name. Your entries save as you go, so you can stop and pick up later on any phone or computer.';
+    const last = store.get('sc:last');
+    if (last && states.includes(last.state)) {
+      $('state').value = last.state; fillPeople(last.id);
+      if (last.check) $('check').value = last.check;
+    }
+  }, e => { $('pickLede').textContent = ''; $('pickErr').textContent = 'The count list did not load. Check your connection and refresh the page.'; });
+
+  function fillPeople(selectId) {
+    const st = $('state').value;
+    const list = S.sites.filter(s => s.state === st);
+    $('person').innerHTML = '<option value="">Choose your name</option>' +
+      list.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+    $('person').disabled = !st;
+    if (selectId && list.some(s => s.id === selectId)) $('person').value = selectId;
+    onPerson();
+  }
+  function onPerson() {
+    const s = S.sites.find(x => x.id === $('person').value);
+    $('checkWrap').hidden = !(s && s.needsCheck);
+    $('nextBtn').disabled = !s;
+    $('pickErr').textContent = '';
+  }
+  $('state').addEventListener('change', () => fillPeople());
+  $('person').addEventListener('change', onPerson);
+
+  $('nextBtn').addEventListener('click', () => {
+    const id = $('person').value;
+    const check = $('check').value.trim();
+    $('nextBtn').disabled = true; $('nextBtn').textContent = 'Opening…'; $('pickErr').textContent = '';
+    run('openSite', [id, check], res => {
+      $('nextBtn').disabled = false; $('nextBtn').textContent = 'Next';
+      S.check = check;
+      store.set('sc:last', { state: res.site.state, id: res.site.id, check: check });
+      loadSite(res);
+    }, e => {
+      $('nextBtn').disabled = false; $('nextBtn').textContent = 'Next';
+      $('pickErr').textContent = errText(e) || 'Could not open this count. Check your connection and try again.';
+    });
+  });
+
+  // ---------- 2. confirm ----------
+  function loadSite(res) {
+    S.site = res.site; S.items = res.items; S.byKey = {};
+    S.items.forEach(it => { S.byKey[it.k] = it; });
+    S.data = res.draft.data || {}; S.dirty = {};
+    S.locked = res.draft.status === 'Submitted';
+
+    // Bring back anything this device saved but never got to the server.
+    const local = store.get(localKey());
+    let pending = 0;
+    if (local && local.dirty && !S.locked) {
+      Object.keys(local.dirty).forEach(k => {
+        if (!S.byKey[k]) return;
+        if (local.data[k]) S.data[k] = local.data[k]; else delete S.data[k];
+        S.dirty[k] = true; pending++;
+      });
+    }
+
+    $('cName').textContent = S.site.person;
+    $('cWhere').textContent = S.site.state + (S.site.type.toLowerCase() === 'storage' ? ', storage unit' : ', van');
+    const d = res.draft;
+    if (S.locked) {
+      $('cDraft').textContent = 'This count was submitted ' + d.submittedAt + '. To make a change, contact the inventory team.';
+      $('goBtn').textContent = 'View summary';
+    } else if (d.status === 'New' && !pending) {
+      $('cDraft').textContent = 'No count started yet.';
+      $('goBtn').textContent = 'Start counting';
+    } else {
+      const n = Object.keys(S.data).length;
+      $('cDraft').textContent = (d.status === 'Reopened' ? 'Reopened for changes. ' : '') +
+        (d.lastSaved ? 'Last saved ' + d.lastSaved + '. ' : '') +
+        n + ' of ' + S.items.length + ' items entered.' +
+        (pending ? ' ' + pending + ' unsaved entries on this device will be saved now.' : '');
+      $('goBtn').textContent = 'Continue counting';
+    }
+    show('confirm');
+  }
+  $('notMeBtn').addEventListener('click', () => { S.site = null; show('pick'); });
+  $('goBtn').addEventListener('click', () => {
+    if (S.locked) { showDone('Count submitted', 'Submitted for ' + S.site.person + '. To make a change, contact the inventory team.'); return; }
+    renderList(); show('count');
+    $('barWho').textContent = S.site.person + ', ' + S.site.state;
+    setSave(Object.keys(S.dirty).length ? 'warn' : 'ok', Object.keys(S.dirty).length ? 'Saving…' : 'All changes saved');
+    if (Object.keys(S.dirty).length) flush();
+  });
+
+  // ---------- 3. count ----------
+  function renderList() {
+    const groups = [];
+    const idx = {};
+    S.items.forEach(it => {
+      if (!(it.c in idx)) { idx[it.c] = groups.length; groups.push({ name: it.c, items: [] }); }
+      groups[idx[it.c]].items.push(it);
+    });
+    $('list').innerHTML = groups.map((g, gi) => `
+      <div class="sec" data-g="${gi}">
+        <button aria-expanded="false"><span>${esc(g.name)}</span><span class="tally"></span></button>
+        <div class="body">${g.items.map(itemHtml).join('')}</div>
+      </div>`).join('');
+    document.querySelectorAll('.item').forEach(refreshItem);
+    refreshTallies();
+  }
+  function itemHtml(it) {
+    const e = S.data[it.k] || {};
+    const meta = [it.s, it.b, it.st].filter(Boolean).join(', ');
+    const fields = FIELDS.map((F, i) => !it.a[i] ? '' : `
+      <label class="f"><span>${F.label}</span>
+        <input data-f="${F.f}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${e[F.f] != null ? e[F.f] : ''}"></label>`).join('');
+    return `<div class="item" data-k="${esc(it.k)}">
+      <div class="d">${esc(it.d)}</div>
+      <div class="m">${esc(meta)}${it.q > 1 && it.a[0] ? ' (' + it.q + ' per package)' : ''}</div>
+      <div class="fields">${fields}</div>
+      <div class="warn-msg" hidden></div>
+      <button class="note-btn" type="button"${e.n ? ' hidden' : ''}>Add a note</button>
+      <textarea data-f="n" rows="2" placeholder="Note for the reviewer" maxlength="500"${e.n ? '' : ' hidden'}>${esc(e.n || '')}</textarea>
+    </div>`;
+  }
+
+  $('list').addEventListener('click', ev => {
+    const head = ev.target.closest('.sec > button');
+    if (head) {
+      const sec = head.parentElement;
+      sec.classList.toggle('open');
+      head.setAttribute('aria-expanded', sec.classList.contains('open'));
+      return;
+    }
+    const nb = ev.target.closest('.note-btn');
+    if (nb) { nb.hidden = true; const ta = nb.nextElementSibling; ta.hidden = false; ta.focus(); }
+  });
+
+  $('list').addEventListener('input', ev => {
+    const el = ev.target;
+    if (!el.dataset.f || S.locked) return;
+    const row = el.closest('.item');
+    const k = row.dataset.k;
+    if (el.dataset.f !== 'n') {
+      const clean = el.value.replace(/\D/g, '').slice(0, 5);
+      if (clean !== el.value) el.value = clean;
+    }
+    const e = Object.assign({}, S.data[k] || {});
+    const v = el.dataset.f === 'n' ? el.value.slice(0, 500) : el.value;
+    if (v === '' || (el.dataset.f === 'n' && !v.trim())) delete e[el.dataset.f];
+    else e[el.dataset.f] = el.dataset.f === 'n' ? v : Number(v);
+    if (Object.keys(e).length) S.data[k] = e; else delete S.data[k];
+    S.dirty[k] = true;
+    saveLocal();
+    refreshItem(row);
+    refreshTallies();
+    setSave('warn', 'Saving…');
+    clearTimeout(S.timer);
+    S.timer = setTimeout(flush, SAVE_DELAY);
+  });
+
+  function refreshItem(row) {
+    const it = S.byKey[row.dataset.k];
+    const e = S.data[it.k] || {};
+    row.querySelectorAll('input[data-f]').forEach(inp => inp.classList.toggle('has', inp.value !== ''));
+    const w = row.querySelector('.warn-msg');
+    if (it.q > 1 && e.l != null && e.l >= it.q) {
+      w.textContent = `That's a full package or more (${it.q} per package). Count unopened packages under Full packages.`;
+      w.hidden = false;
+    } else w.hidden = true;
+  }
+  function refreshTallies() {
+    document.querySelectorAll('.sec').forEach(sec => {
+      const keys = [...sec.querySelectorAll('.item')].map(r => r.dataset.k);
+      const n = keys.filter(k => S.data[k]).length;
+      const t = sec.querySelector('.tally');
+      t.textContent = n + ' of ' + keys.length;
+      t.classList.toggle('done', n === keys.length);
+    });
+    $('prog').innerHTML = '<strong>' + Object.keys(S.data).length + '</strong> of ' + S.items.length + ' items entered';
+  }
+
+  // search + "not entered" filter
+  function applyFilter() {
+    const q = $('search').value.trim().toLowerCase();
+    const blankOnly = $('onlyBlank').getAttribute('aria-pressed') === 'true';
+    let any = false;
+    document.querySelectorAll('.sec').forEach(sec => {
+      let shown = 0;
+      sec.querySelectorAll('.item').forEach(row => {
+        const it = S.byKey[row.dataset.k];
+        const hit = (!q || (it.d + ' ' + it.b + ' ' + it.s).toLowerCase().includes(q)) && (!blankOnly || !S.data[it.k]);
+        row.hidden = !hit; if (hit) shown++;
+      });
+      sec.hidden = !shown; if (shown) any = true;
+      if ((q || blankOnly) && shown) { sec.classList.add('open'); sec.firstElementChild.setAttribute('aria-expanded', 'true'); }
+    });
+    $('noMatch').hidden = any;
+  }
+  $('search').addEventListener('input', applyFilter);
+  $('onlyBlank').addEventListener('click', () => {
+    const b = $('onlyBlank'); b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); applyFilter();
+  });
+
+  // ---------- saving ----------
+  function setSave(cls, text) { const s = $('save'); s.className = 'save ' + cls; s.textContent = text; }
+  function changesFromDirty() {
+    const c = {};
+    Object.keys(S.dirty).forEach(k => { c[k] = S.data[k] || null; });
+    return c;
+  }
+  function flush() {
+    clearTimeout(S.timer);
+    if (S.inflight || S.locked || !S.site || !Object.keys(S.dirty).length) return;
+    const sent = changesFromDirty();
+    const sentJson = {};
+    Object.keys(sent).forEach(k => { sentJson[k] = JSON.stringify(sent[k]); });
+    S.inflight = true;
+    run('saveDraft', [S.site.id, S.check, sent], res => {
+      S.inflight = false; S.retry = 0;
+      Object.keys(sentJson).forEach(k => {
+        if (JSON.stringify(S.data[k] || null) === sentJson[k]) delete S.dirty[k];   // unchanged since send
+      });
+      saveLocal();
+      if (Object.keys(S.dirty).length) { setSave('warn', 'Saving…'); S.timer = setTimeout(flush, 1000); }
+      else setSave('ok', 'Saved ' + res.saved);
+    }, e => {
+      S.inflight = false;
+      const msg = String((e && e.message) || e);
+      if (/SUBMITTED/.test(msg)) { S.locked = true; setSave('bad', 'Already submitted'); return; }
+      if (/CHECK|NOT_FOUND/.test(msg)) { setSave('bad', 'Not saved'); alert(errText(e)); return; }
+      S.retry++;
+      const wait = Math.min(30000, 2000 * Math.pow(2, S.retry - 1));
+      setSave('warn', navigator.onLine === false
+        ? 'Offline. Saved on this device, will sync'
+        : 'Not saved yet, retrying');
+      S.timer = setTimeout(flush, wait);
+    });
+  }
+  window.addEventListener('online', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  window.addEventListener('beforeunload', ev => {
+    if (S.site && Object.keys(S.dirty).length) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  // ---------- 4. review + submit ----------
+  $('reviewBtn').addEventListener('click', () => {
+    const entered = Object.keys(S.data).length;
+    const blank = S.items.length - entered;
+    const warns = S.items.filter(it => { const e = S.data[it.k]; return e && it.q > 1 && e.l != null && e.l >= it.q; });
+    const notes = S.items.filter(it => S.data[it.k] && S.data[it.k].n).length;
+    $('rBody').innerHTML =
+      `<div class="stat"><strong>${entered}</strong> items entered</div>` +
+      `<div class="stat"><strong>${blank}</strong> left blank (counted as none on hand)</div>` +
+      (notes ? `<div class="stat"><strong>${notes}</strong> ${notes === 1 ? 'note' : 'notes'} for the reviewer</div>` : '') +
+      (warns.length ? `<p style="margin-top:12px">Loose units look like full packages on these. Check them before you submit:</p>
+        <ul>${warns.map(it => `<li>${esc(it.d)}</li>`).join('')}</ul>` : '') +
+      `<p style="margin-top:12px">After you submit, you can't make changes without contacting the inventory team.</p>`;
+    $('rErr').textContent = '';
+    $('submitBtn').disabled = false; $('submitBtn').textContent = 'Submit count';
+    $('review').showModal();
+  });
+  $('keepBtn').addEventListener('click', () => $('review').close());
+  $('submitBtn').addEventListener('click', () => {
+    if (S.inflight) { $('rErr').textContent = 'Still saving. Try again in a few seconds.'; return; }
+    clearTimeout(S.timer);
+    $('submitBtn').disabled = true; $('submitBtn').textContent = 'Submitting…';
+    run('submitCount', [S.site.id, S.check, changesFromDirty()], res => {
+      S.dirty = {}; S.locked = true; store.del(localKey());
+      $('review').close();
+      showDone('Count submitted', 'Submitted ' + res.submitted + ' for ' + S.site.person + ', ' + S.site.state +
+        '. ' + res.entered + ' of ' + res.total + ' items entered. The inventory team will contact you if they have questions.');
+    }, e => {
+      $('submitBtn').disabled = false; $('submitBtn').textContent = 'Submit count';
+      const msg = String((e && e.message) || e);
+      $('rErr').textContent = /SUBMITTED|CHECK|NOT_FOUND/.test(msg) ? errText(e)
+        : 'Not submitted. Your count is saved on this device. Try again when you have signal.';
+    });
+  });
+
+  function showDone(title, text) {
+    $('doneTitle').textContent = title; $('doneText').textContent = text; show('done');
+  }
+  $('startOverBtn').addEventListener('click', () => {
+    S.site = null; $('person').value = ''; $('check').value = ''; onPerson(); show('pick');
+  });
+})();
+</script>
+</body>
+</html>
