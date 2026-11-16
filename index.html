@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="utf-8">
 <title>Year-end supply count</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -16,17 +16,23 @@
     --glove: #2F5BD3;
     --glove-ink: #FFFFFF;
     --glove-soft: #E6ECFB;
-    --warn: #9A5600;
-    --warn-soft: #FFF4E0;
+    --chip: #5B2BB5;
+    --chip-soft: #EFE7FC;
+    --warn: #8A4D00;
+    --warn-soft: #FFF2D9;
+    --warn-line: #F0C26B;
     --bad: #B3261E;
     --ok: #1E7A4C;
+    --ok-soft: #E3F4EA;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --ink: #E3ECEF; --muted: #9AAEB6; --paper: #10191D; --surface: #18242A; --line: #2C3D45;
       --glove: #7C9CF5; --glove-ink: #0D1630; --glove-soft: #1D2A4D;
-      --warn: #F0B35C; --warn-soft: #33270F; --bad: #FF8A80; --ok: #6FD3A0;
+      --chip: #C9B2FF; --chip-soft: #2C2145;
+      --warn: #F0B35C; --warn-soft: #33270F; --warn-line: #6B4E1C;
+      --bad: #FF8A80; --ok: #6FD3A0; --ok-soft: #173326;
       color-scheme: dark;
     }
   }
@@ -39,85 +45,122 @@
   main { max-width: 680px; margin: 0 auto; padding: 0 16px 120px; }
   [hidden] { display: none !important; }
   h1 { font-size: 1.75rem; line-height: 1.2; margin: 32px 0 8px; }
+  h2 { font-size: 1.2rem; margin: 24px 0 8px; }
   p { margin: 0 0 16px; }
   .lede { color: var(--muted); }
-  label.field { display: block; margin: 0 0 16px; font-weight: 700; }
-  label.field span { display: block; margin-bottom: 6px; }
+  label.field, .field-label { display: block; margin: 0 0 16px; font-weight: 700; }
+  label.field > span, .field-label > span { display: block; margin-bottom: 6px; }
+  .hint { display: block; font-weight: 400; color: var(--muted); font-size: .95rem; margin-top: 6px; }
   select, input, textarea {
     font: inherit; color: var(--ink); background: var(--surface);
     border: 1.5px solid var(--line); border-radius: 10px; width: 100%;
   }
-  select, label.field input { padding: 12px; min-height: 48px; }
+  select, label.field input { padding: 12px; min-height: 50px; }
   :focus-visible { outline: 3px solid var(--glove); outline-offset: 2px; }
   button { font: inherit; cursor: pointer; border-radius: 10px; min-height: 48px; padding: 10px 18px; }
   .primary { background: var(--glove); color: var(--glove-ink); border: 0; font-weight: 700; width: 100%; }
   .primary:disabled { opacity: .45; cursor: default; }
   .quiet { background: transparent; color: var(--glove); border: 1.5px solid var(--line); width: 100%; margin-top: 10px; }
+  .link { background: none; border: 0; color: var(--glove); padding: 6px 0; min-height: 40px; text-decoration: underline; }
   .err { color: var(--bad); font-weight: 700; min-height: 1.4em; }
 
-  /* Confirm: the one bold moment, so nobody counts under the wrong name */
+  /* Site picker */
+  .sites { display: grid; gap: 8px; }
+  .site-opt { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1.5px solid var(--line);
+    border-radius: 10px; background: var(--surface); font-weight: 700; cursor: pointer; }
+  .site-opt input { width: 22px; height: 22px; margin: 0; accent-color: var(--glove); }
+  .site-opt:has(input:checked) { border-color: var(--glove); background: var(--glove-soft); }
+
+  /* Confirm */
   .who-card { background: var(--glove); color: var(--glove-ink); border-radius: 16px; padding: 24px; margin: 32px 0 20px; }
   .who-card .for { margin: 0; opacity: .85; }
   .who-card .name { font-size: 2.2rem; line-height: 1.1; font-weight: 700; margin: 6px 0 10px; overflow-wrap: anywhere; }
-  .who-card .where { margin: 0; font-size: 1.05rem; }
-  .draft-line { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .who-card .where { margin: 0; font-size: 1.1rem; }
+  .card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 
-  /* Top bar on the count screen */
-  .bar {
-    position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1.5px solid var(--line);
-    padding: 10px 16px;
-  }
+  /* Top bar */
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1.5px solid var(--line); padding: 10px 16px; }
   .bar-in { max-width: 680px; margin: 0 auto; }
   .bar-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .bar .who { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .save { font-size: .9rem; color: var(--muted); white-space: nowrap; }
   .save.ok { color: var(--ok); } .save.warn { color: var(--warn); } .save.bad { color: var(--bad); }
   .tools { display: flex; gap: 8px; margin-top: 8px; }
-  .tools input { padding: 10px 12px; min-height: 44px; }
-  .toggle { white-space: nowrap; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); min-height: 44px; padding: 8px 12px; }
-  .toggle[aria-pressed="true"] { background: var(--glove-soft); border-color: var(--glove); color: var(--ink); }
+  .tools input { padding: 10px 12px; min-height: 46px; }
+  .toggle { white-space: nowrap; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); min-height: 46px; padding: 8px 12px; }
+  .toggle[aria-pressed="true"] { background: var(--glove-soft); border-color: var(--glove); }
 
-  /* Sections and items */
+  /* Sections */
   .sec { margin-top: 14px; }
   .sec > button {
     width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px;
     background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); text-align: left; font-weight: 700;
   }
+  .sec.done > button { border-color: var(--ok); }
   .sec.open > button { border-radius: 10px 10px 0 0; }
-  .sec .tally { font-weight: 400; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .sec .tally.done { color: var(--ok); }
+  .sec .right { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .sec .tally { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .check { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--ok); color: #fff; font-size: .85rem; font-weight: 700; }
   .sec .body { display: none; border: 1.5px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px; background: var(--surface); }
+  .sec.done .body { border-color: var(--ok); }
   .sec.open .body { display: block; }
-  .item { padding: 14px 14px 12px; border-top: 1px solid var(--line); }
+  .sec-foot { padding: 12px 14px 14px; border-top: 1px solid var(--line); }
+  .none-btn { width: 100%; background: var(--surface); color: var(--ink); border: 1.5px dashed var(--line); }
+  .none-done { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    background: var(--ok-soft); color: var(--ok); border-radius: 10px; padding: 8px 12px; font-weight: 700; }
+  .none-done .link { color: var(--ok); }
+
+  /* Items */
+  .item { padding: 16px 14px 12px; border-top: 1px solid var(--line); }
   .item:first-child { border-top: 0; }
-  .item .d { font-weight: 700; }
-  .item .m { color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
-  .fields { display: flex; flex-wrap: wrap; gap: 8px; }
-  .f { flex: 1 1 64px; max-width: 120px; }
-  .f span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 3px; }
-  .f input { padding: 8px 10px; min-height: 46px; font-size: 1.15rem; font-variant-numeric: tabular-nums; text-align: center; }
+  .item .d { font-weight: 700; font-size: 1.05rem; }
+  .chip { display: inline-block; margin-left: 6px; padding: 1px 10px; border-radius: 999px; background: var(--chip-soft);
+    color: var(--chip); border: 1.5px solid var(--chip); font-weight: 700; font-size: .92rem; vertical-align: 1px; }
+  .item .m { color: var(--muted); font-size: .92rem; }
+  .item .no { color: var(--muted); font-size: .88rem; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+  .fields { display: flex; flex-wrap: wrap; gap: 10px; }
+  .f { flex: 1 1 84px; max-width: 140px; }
+  .f span { display: block; font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .f input { padding: 8px 10px; min-height: 52px; font-size: 1.3rem; font-variant-numeric: tabular-nums; text-align: center; }
   .f input.has { border-color: var(--glove); background: var(--glove-soft); }
-  .item .warn-msg { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: .92rem; }
-  .note-btn { background: none; border: 0; color: var(--glove); padding: 6px 0 0; min-height: 36px; font-size: .92rem; }
+  .warn-msg { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn);
+    border: 1.5px solid var(--warn-line); font-size: .95rem; }
+  .warn-msg p { margin: 0; } .warn-msg p + p { margin-top: 6px; }
+  .note-btn { background: none; border: 0; color: var(--glove); padding: 6px 0 0; min-height: 36px; font-size: .95rem; }
   .item textarea { margin-top: 6px; padding: 8px 10px; min-height: 64px; font-size: 1rem; }
   .empty { padding: 24px 0; color: var(--muted); }
+  .item.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0%, 40% { background: var(--warn-soft); } 100% { background: transparent; } }
 
   /* Bottom bar */
-  .foot {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1.5px solid var(--line);
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  }
+  .foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1.5px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .foot-in { max-width: 680px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
   .foot .prog { flex: 1; font-variant-numeric: tabular-nums; color: var(--muted); }
   .foot .prog strong { color: var(--ink); }
   .foot .primary { width: auto; }
 
-  dialog { border: 0; border-radius: 16px; padding: 22px; width: min(92vw, 520px); background: var(--surface); color: var(--ink); }
-  dialog::backdrop { background: rgba(10, 20, 25, .5); }
-  dialog h2 { margin: 0 0 12px; font-size: 1.35rem; }
-  dialog ul { padding-left: 20px; margin: 0 0 14px; max-height: 30vh; overflow: auto; }
-  .stat { font-size: 1.05rem; margin-bottom: 6px; }
-  .done-mark { font-size: 3rem; line-height: 1; margin-top: 40px; color: var(--ok); }
+  /* Review */
+  .stat { font-size: 1.05rem; margin-bottom: 4px; }
+  .rv { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .rv.flag { border-color: var(--warn-line); }
+  .rv.cleared { border-color: var(--ok); }
+  .rv .t { font-weight: 700; }
+  .rv .you { margin: 6px 0; }
+  .rv .acts { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 8px; }
+  .rv .acts .quiet { width: auto; margin: 0; }
+  .confirm { display: flex; gap: 10px; align-items: center; font-weight: 700; cursor: pointer; min-height: 44px; }
+  .confirm input { width: 24px; height: 24px; margin: 0; accent-color: var(--ok); }
+  .gate { margin: 16px 0 10px; font-weight: 700; color: var(--warn); }
+  .gate.ready { color: var(--ok); }
+
+  /* Done */
+  .done-mark { width: 72px; height: 72px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center;
+    font-size: 2.4rem; margin-top: 40px; }
+  .contacts { list-style: none; padding: 0; margin: 0 0 20px; }
+  .contacts li { padding: 10px 14px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  .contacts strong { display: block; }
   @media (prefers-reduced-motion: no-preference) { .sec.open .body { animation: drop .15s ease-out; } }
   @keyframes drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 </style>
@@ -131,7 +174,7 @@
       <div class="save" id="save" role="status" aria-live="polite"></div>
     </div>
     <div class="tools">
-      <input id="search" type="search" placeholder="Find an item" aria-label="Find an item" autocomplete="off">
+      <input id="search" type="search" placeholder="Find by name or item #" aria-label="Find an item by name or item number" autocomplete="off">
       <button class="toggle" id="onlyBlank" aria-pressed="false">Not entered</button>
     </div>
   </div>
@@ -144,8 +187,10 @@
     <p class="lede" id="pickLede">Loading the count list…</p>
     <label class="field"><span>State</span><select id="state" disabled></select></label>
     <label class="field"><span>Your name</span><select id="person" disabled></select></label>
-    <label class="field" id="checkWrap" hidden><span>Van number</span>
-      <input id="check" inputmode="numeric" autocomplete="off"></label>
+    <div class="field-label" id="siteWrap" hidden><span>Which site are you counting?</span><div class="sites" id="sites"></div></div>
+    <label class="field" id="pinWrap" hidden><span id="pinLabel">PIN</span>
+      <input id="pin" inputmode="numeric" autocomplete="off">
+      <span class="hint" id="pinHint"></span></label>
     <p class="err" id="pickErr" role="alert"></p>
     <button class="primary" id="nextBtn" disabled>Next</button>
   </section>
@@ -157,7 +202,7 @@
       <div class="name" id="cName"></div>
       <p class="where" id="cWhere"></p>
     </div>
-    <div class="draft-line" id="cDraft"></div>
+    <div class="card" id="cDraft"></div>
     <p></p>
     <button class="primary" id="goBtn">Start counting</button>
     <button class="quiet" id="notMeBtn">That's not me</button>
@@ -165,17 +210,32 @@
 
   <!-- 3. Count -->
   <section id="count" hidden>
-    <p class="lede" style="margin-top:16px">Enter what's on hand. Leave a box blank if you have none. Everything saves as you type.</p>
+    <p class="lede" style="margin-top:16px">Enter what's on hand. Leave a box blank if you have none. Everything saves as you type.
+      Each section gets a green check once you've entered something or confirmed you have none.</p>
     <div id="list"></div>
     <p class="empty" id="noMatch" hidden>No items match. Clear the search to see everything.</p>
   </section>
 
-  <!-- 4. Done / locked -->
+  <!-- 4. Review -->
+  <section id="review" hidden>
+    <h1>Review your count</h1>
+    <div id="rStats"></div>
+    <div id="rCats"></div>
+    <div id="rFlags"></div>
+    <p class="gate" id="rGate"></p>
+    <p class="err" id="rErr" role="alert"></p>
+    <button class="primary" id="submitBtn">Submit count</button>
+    <button class="quiet" id="backBtn">Back to counting</button>
+  </section>
+
+  <!-- 5. Done -->
   <section id="done" hidden>
     <div class="done-mark" aria-hidden="true">✓</div>
-    <h1 id="doneTitle">Count submitted</h1>
+    <h1 id="doneTitle"></h1>
     <p id="doneText"></p>
-    <button class="quiet" id="startOverBtn">Count for someone else</button>
+    <p class="lede" id="doneMeta"></p>
+    <div id="doneContacts"></div>
+    <button class="quiet" id="startOverBtn">Count another site</button>
   </section>
 </main>
 
@@ -186,33 +246,29 @@
   </div>
 </div>
 
-<dialog id="review">
-  <h2>Review your count</h2>
-  <div id="rBody"></div>
-  <p class="err" id="rErr" role="alert"></p>
-  <button class="primary" id="submitBtn">Submit count</button>
-  <button class="quiet" id="keepBtn">Keep editing</button>
-</dialog>
-
 <script>
 (function () {
   'use strict';
-  // ▼ Paste your Apps Script web app URL here (ends in /exec)
+  // ▼ Your Apps Script web app URL (ends in /exec)
   const API_URL = 'https://script.google.com/macros/s/AKfycbzkfeCyAdOM1fImHFy4LSnZjMx2Uot1ithVYEyEBsCF6E26laPks_rm_OupmyIerE_dZA/exec';
 
   const FIELDS = [
-    { f: 'l', label: 'Loose units' },
-    { f: 'f', label: 'Full packages' },
-    { f: 'q', label: '¼ full' },
-    { f: 'h', label: '½ full' },
-    { f: 't', label: '¾ full' }
+    { f: 'l', label: 'Loose units', unit: n => n === 1 ? 'loose unit' : 'loose units' },
+    { f: 'f', label: 'Full packages', unit: n => n === 1 ? 'full package' : 'full packages' },
+    { f: 'q', label: '¼ full', unit: () => 'at ¼ full' },
+    { f: 'h', label: '½ full', unit: () => 'at ½ full' },
+    { f: 't', label: '¾ full', unit: () => 'at ¾ full' }
   ];
+  const FRACTION = { q: 0.25, h: 0.5, t: 0.75 };
+  const CAT = 'cat:';
   const SAVE_DELAY = 3000;
   const $ = id => document.getElementById(id);
-  const S = { sites: [], site: null, check: '', items: [], byKey: {}, data: {}, dirty: {},
-              inflight: false, timer: null, retry: 0, locked: false };
+  const S = {
+    sites: [], settings: {}, site: null, pin: '', items: [], byKey: {}, classes: [], chips: {},
+    data: {}, dirty: {}, shown: {}, inflight: false, timer: null, retry: 0, locked: false
+  };
 
-  // ---------- local backup (best effort) ----------
+  // ---------- helpers ----------
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -220,71 +276,141 @@
   };
   const localKey = () => 'sc:draft:' + S.site.id;
   const saveLocal = () => store.set(localKey(), { data: S.data, dirty: S.dirty, t: Date.now() });
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const errText = e => {
+    const m = String((e && e.message) || e);
+    return m === 'NETWORK' ? '' : m.replace(/^(Error: )?(PIN|NOT_FOUND|SUBMITTED): /, '');
+  };
+  const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const siteText = s => s.label || (s.siteName ? s.type + ' ' + s.siteName : s.type);
 
-  // Sends a request to the Apps Script back end. No Google login is involved,
-  // so people signed into several Google accounts are fine.
   function run(fn, args, ok, fail) {
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: fn, args: args }),   // plain text body: no CORS preflight
       credentials: 'omit',
       redirect: 'follow',
-      keepalive: fn === 'saveDraft'                       // lets a save finish if the page is closing
+      keepalive: fn === 'saveDraft'
     })
       .then(r => r.json())
       .then(res => res.ok ? ok(res.result) : fail(new Error(res.error)))
       .catch(() => fail(new Error('NETWORK')));
   }
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const errText = e => { const m = String((e && e.message) || e); return m === 'NETWORK' ? '' : m.replace(/^(Error: )?(CHECK|NOT_FOUND|SUBMITTED): /, ''); };
+
   function show(id) {
-    ['pick', 'confirm', 'count', 'done'].forEach(s => { $(s).hidden = s !== id; });
+    ['pick', 'confirm', 'count', 'review', 'done'].forEach(s => { $(s).hidden = s !== id; });
     $('bar').hidden = $('foot').hidden = id !== 'count';
     window.scrollTo(0, 0);
   }
 
+  // ---------- counting rules (same as the server) ----------
+  const hasCount = e => !!e && FIELDS.some(F => e[F.f] != null && e[F.f] !== '');
+  const hasEntry = e => hasCount(e) || !!(e && e.n);
+  const fqe = (it, e) => (e.l || 0) / (it.q || 1) + (e.f || 0) + (e.q || 0) * FRACTION.q + (e.h || 0) * FRACTION.h + (e.t || 0) * FRACTION.t;
+  const round = x => Math.round(x * 10000) / 10000;
+  const catNone = cls => !!S.data[CAT + cls];
+
+  /** Warnings for one item. includeBlank: also flag blank items that have a Low band (review only). */
+  function warnings(it, includeBlank) {
+    const e = S.data[it.k] || {};
+    const out = [];
+    const st = S.settings;
+    if (hasCount(e)) {
+      const x = round(fqe(it, e));
+      if (it.hi != null && x > it.hi) out.push(it.m || st.HighWarning);
+      if (it.lo != null && x < it.lo) out.push(it.m || st.LowWarning);
+      if (it.q > 1 && it.a[0] && e.l >= it.q) {
+        out.push(`That's a full package or more of loose units (${it.q} per package). Count unopened packages under Full packages.`);
+      }
+    } else if (includeBlank && it.lo != null && it.lo > 0 && !catNone(it.c)) {
+      out.push(it.m || st.LowWarning);
+    }
+    return out;
+  }
+
+  function youEntered(it) {
+    const e = S.data[it.k] || {};
+    const parts = FIELDS.filter(F => e[F.f] != null).map(F => e[F.f] + ' ' + F.unit(e[F.f]));
+    return parts.length ? parts.join(', ') : 'Nothing entered';
+  }
+
   // ---------- 1. pick ----------
   run('getSetup', [], res => {
-    S.sites = res.sites;
+    S.sites = res.sites; S.settings = res.settings || {};
+    $('pinLabel').textContent = S.settings.PinLabel || 'PIN';
+    $('pinHint').textContent = S.settings.PinHint || '';
     const states = [...new Set(S.sites.map(s => s.state))].sort();
-    $('state').innerHTML = '<option value="">Choose your state</option>' +
-      states.map(s => `<option>${esc(s)}</option>`).join('');
+    $('state').innerHTML = '<option value="">Choose your state</option>' + states.map(s => `<option>${esc(s)}</option>`).join('');
     $('state').disabled = false;
     $('pickLede').textContent = 'Pick your state and name. Your entries save as you go, so you can stop and pick up later on any phone or computer.';
     const last = store.get('sc:last');
     if (last && states.includes(last.state)) {
-      $('state').value = last.state; fillPeople(last.id);
-      if (last.check) $('check').value = last.check;
+      $('state').value = last.state;
+      fillPeople(last.person, last.id);
+      if (last.pin) $('pin').value = last.pin;
+      onPick();
     }
-  }, e => { $('pickLede').textContent = ''; $('pickErr').textContent = 'The count list did not load. Check your connection and refresh the page.'; });
+  }, () => {
+    $('pickLede').textContent = '';
+    $('pickErr').textContent = 'The count list did not load. Check your connection and refresh the page.';
+  });
 
-  function fillPeople(selectId) {
-    const st = $('state').value;
-    const list = S.sites.filter(s => s.state === st);
-    $('person').innerHTML = '<option value="">Choose your name</option>' +
-      list.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
-    $('person').disabled = !st;
-    if (selectId && list.some(s => s.id === selectId)) $('person').value = selectId;
-    onPerson();
+  function peopleIn(state) {
+    const map = new Map();
+    S.sites.filter(s => s.state === state).forEach(s => {
+      const k = norm(s.person);
+      if (!map.has(k)) map.set(k, { key: k, name: s.person, sites: [] });
+      map.get(k).sites.push(s);
+    });
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
-  function onPerson() {
-    const s = S.sites.find(x => x.id === $('person').value);
-    $('checkWrap').hidden = !(s && s.needsCheck);
-    $('nextBtn').disabled = !s;
+
+  function fillPeople(personKey, siteId) {
+    const list = peopleIn($('state').value);
+    $('person').innerHTML = '<option value="">Choose your name</option>' +
+      list.map(p => `<option value="${esc(p.key)}">${esc(p.name)}</option>`).join('');
+    $('person').disabled = !$('state').value;
+    if (personKey && list.some(p => p.key === personKey)) $('person').value = personKey;
+    fillSites(siteId);
+  }
+
+  function fillSites(siteId) {
+    const p = peopleIn($('state').value).find(x => x.key === $('person').value);
+    const sites = p ? p.sites : [];
+    $('siteWrap').hidden = sites.length < 2;
+    $('sites').innerHTML = sites.map(s => `
+      <label class="site-opt"><input type="radio" name="site" value="${esc(s.id)}"
+        ${sites.length === 1 || s.id === siteId ? 'checked' : ''}>${esc(siteText(s))}</label>`).join('');
+    onPick();
+  }
+
+  function chosenSite() {
+    const r = document.querySelector('input[name="site"]:checked');
+    return r ? S.sites.find(s => s.id === r.value) : null;
+  }
+
+  function onPick() {
+    const s = chosenSite();
+    $('pinWrap').hidden = !(s && s.needsPin);
+    $('nextBtn').disabled = !s || (s.needsPin && !$('pin').value.trim());
     $('pickErr').textContent = '';
   }
-  $('state').addEventListener('change', () => fillPeople());
-  $('person').addEventListener('change', onPerson);
+
+  $('state').addEventListener('change', () => { $('pin').value = ''; fillPeople(); });
+  $('person').addEventListener('change', () => { $('pin').value = ''; fillSites(); });
+  $('sites').addEventListener('change', onPick);
+  $('pin').addEventListener('input', onPick);
 
   $('nextBtn').addEventListener('click', () => {
-    const id = $('person').value;
-    const check = $('check').value.trim();
+    const s = chosenSite();
+    if (!s) return;
+    const pin = s.needsPin ? $('pin').value.trim() : '';
     $('nextBtn').disabled = true; $('nextBtn').textContent = 'Opening…'; $('pickErr').textContent = '';
-    run('openSite', [id, check], res => {
+    run('openSite', [s.id, pin], res => {
       $('nextBtn').disabled = false; $('nextBtn').textContent = 'Next';
-      S.check = check;
-      store.set('sc:last', { state: res.site.state, id: res.site.id, check: check });
+      S.pin = pin;
+      store.set('sc:last', { state: res.site.state, person: norm(res.site.person), id: res.site.id, pin: pin });
       loadSite(res);
     }, e => {
       $('nextBtn').disabled = false; $('nextBtn').textContent = 'Next';
@@ -294,8 +420,12 @@
 
   // ---------- 2. confirm ----------
   function loadSite(res) {
-    S.site = res.site; S.items = res.items; S.byKey = {};
-    S.items.forEach(it => { S.byKey[it.k] = it; });
+    S.site = res.site; S.items = res.items; S.byKey = {}; S.classes = []; S.shown = {};
+    S.items.forEach(it => {
+      S.byKey[it.k] = it;
+      if (!S.classes.includes(it.c)) S.classes.push(it.c);
+    });
+    buildChips();
     S.data = res.draft.data || {}; S.dirty = {};
     S.locked = res.draft.status === 'Submitted';
 
@@ -304,26 +434,25 @@
     let pending = 0;
     if (local && local.dirty && !S.locked) {
       Object.keys(local.dirty).forEach(k => {
-        if (!S.byKey[k]) return;
+        if (!S.byKey[k] && k.indexOf(CAT) !== 0) return;
         if (local.data[k]) S.data[k] = local.data[k]; else delete S.data[k];
         S.dirty[k] = true; pending++;
       });
     }
 
     $('cName').textContent = S.site.person;
-    $('cWhere').textContent = S.site.state + (S.site.type.toLowerCase() === 'storage' ? ', storage unit' : ', van');
+    $('cWhere').textContent = S.site.state + ', ' + siteText(S.site);
     const d = res.draft;
     if (S.locked) {
       $('cDraft').textContent = 'This count was submitted ' + d.submittedAt + '. To make a change, contact the inventory team.';
-      $('goBtn').textContent = 'View summary';
+      $('goBtn').textContent = 'View confirmation';
     } else if (d.status === 'New' && !pending) {
       $('cDraft').textContent = 'No count started yet.';
       $('goBtn').textContent = 'Start counting';
     } else {
-      const n = Object.keys(S.data).length;
+      const n = S.items.filter(it => hasEntry(S.data[it.k])).length;
       $('cDraft').textContent = (d.status === 'Reopened' ? 'Reopened for changes. ' : '') +
-        (d.lastSaved ? 'Last saved ' + d.lastSaved + '. ' : '') +
-        n + ' of ' + S.items.length + ' items entered.' +
+        (d.lastSaved ? 'Last saved ' + d.lastSaved + '. ' : '') + n + ' of ' + S.items.length + ' items entered.' +
         (pending ? ' ' + pending + ' unsaved entries on this device will be saved now.' : '');
       $('goBtn').textContent = 'Continue counting';
     }
@@ -331,43 +460,126 @@
   }
   $('notMeBtn').addEventListener('click', () => { S.site = null; show('pick'); });
   $('goBtn').addEventListener('click', () => {
-    if (S.locked) { showDone('Count submitted', 'Submitted for ' + S.site.person + '. To make a change, contact the inventory team.'); return; }
+    if (S.locked) { showDone(null); return; }
     renderList(); show('count');
-    $('barWho').textContent = S.site.person + ', ' + S.site.state;
-    setSave(Object.keys(S.dirty).length ? 'warn' : 'ok', Object.keys(S.dirty).length ? 'Saving…' : 'All changes saved');
-    if (Object.keys(S.dirty).length) flush();
+    $('barWho').textContent = S.site.person + ', ' + S.site.state + ', ' + siteText(S.site);
+    const pending = Object.keys(S.dirty).length;
+    setSave(pending ? 'warn' : 'ok', pending ? 'Saving…' : 'All changes saved');
+    if (pending) flush();
   });
 
-  // ---------- 3. count ----------
-  function renderList() {
-    const groups = [];
-    const idx = {};
+  /** Chips: the Highlight column wins; otherwise, for items sharing a description, the detail that differs. */
+  function buildChips() {
+    S.chips = {};
+    const groups = {};
+    S.items.forEach(it => { (groups[norm(it.d)] = groups[norm(it.d)] || []).push(it); });
     S.items.forEach(it => {
-      if (!(it.c in idx)) { idx[it.c] = groups.length; groups.push({ name: it.c, items: [] }); }
-      groups[idx[it.c]].items.push(it);
+      if (it.hl) { S.chips[it.k] = { text: [it.hl], skip: [] }; return; }
+      const g = groups[norm(it.d)];
+      if (g.length < 2) return;
+      const fields = ['st', 's', 'b'].filter(f => new Set(g.map(x => norm(x[f]))).size > 1 && it[f]);
+      if (fields.length) S.chips[it.k] = { text: fields.map(f => it[f]), skip: fields };
     });
-    $('list').innerHTML = groups.map((g, gi) => `
-      <div class="sec" data-g="${gi}">
-        <button aria-expanded="false"><span>${esc(g.name)}</span><span class="tally"></span></button>
-        <div class="body">${g.items.map(itemHtml).join('')}</div>
-      </div>`).join('');
-    document.querySelectorAll('.item').forEach(refreshItem);
-    refreshTallies();
   }
+
+  // ---------- 3. count ----------
+  function titleHtml(it) {
+    const ch = S.chips[it.k];
+    return esc(it.d) + (ch ? ch.text.map(t => `<span class="chip">${esc(t)}</span>`).join('') : '');
+  }
+  function metaText(it) {
+    const ch = S.chips[it.k] || { text: [], skip: [] };
+    const parts = [['s', it.s], ['b', it.b], ['st', it.st]]
+      .filter(([f, v]) => v && !ch.skip.includes(f) && !ch.text.some(t => norm(t) === norm(v)))
+      .map(([, v]) => v);
+    const pack = it.q > 1 && it.a[0] ? ` (${it.q} per package)` : '';
+    return parts.join(', ') + pack;
+  }
+
+  function renderList() {
+    $('list').innerHTML = S.classes.map((cls, gi) => {
+      const items = S.items.filter(it => it.c === cls);
+      return `<div class="sec" data-g="${gi}" data-c="${esc(cls)}">
+        <button aria-expanded="false"><span>${esc(cls)}</span>
+          <span class="right"><span class="tally"></span><span class="check" aria-label="Done" hidden>✓</span></span></button>
+        <div class="body">${items.map(itemHtml).join('')}<div class="sec-foot"></div></div>
+      </div>`;
+    }).join('');
+    document.querySelectorAll('.item').forEach(row => refreshItem(row, true));
+    refreshAll();
+  }
+
   function itemHtml(it) {
     const e = S.data[it.k] || {};
-    const meta = [it.s, it.b, it.st].filter(Boolean).join(', ');
     const fields = FIELDS.map((F, i) => !it.a[i] ? '' : `
       <label class="f"><span>${F.label}</span>
         <input data-f="${F.f}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${e[F.f] != null ? e[F.f] : ''}"></label>`).join('');
+    const no = it.no && it.no !== '0' ? `<div class="no">Item # ${esc(it.no)}</div>` : '<div class="no"></div>';
     return `<div class="item" data-k="${esc(it.k)}">
-      <div class="d">${esc(it.d)}</div>
-      <div class="m">${esc(meta)}${it.q > 1 && it.a[0] ? ' (' + it.q + ' per package)' : ''}</div>
+      <div class="d">${titleHtml(it)}</div>
+      <div class="m">${esc(metaText(it))}</div>
+      ${no}
       <div class="fields">${fields}</div>
       <div class="warn-msg" hidden></div>
       <button class="note-btn" type="button"${e.n ? ' hidden' : ''}>Add a note</button>
       <textarea data-f="n" rows="2" placeholder="Note for the reviewer" maxlength="500"${e.n ? '' : ' hidden'}>${esc(e.n || '')}</textarea>
     </div>`;
+  }
+
+  function refreshItem(row, reveal) {
+    const it = S.byKey[row.dataset.k];
+    row.querySelectorAll('input[data-f]').forEach(inp => inp.classList.toggle('has', inp.value !== ''));
+    const w = warnings(it, false);
+    if (reveal) S.shown[it.k] = w.length > 0;
+    const box = row.querySelector('.warn-msg');
+    if (w.length && S.shown[it.k]) {
+      box.innerHTML = w.map(t => `<p>${esc(t)}</p>`).join('');
+      box.hidden = false;
+    } else {
+      box.hidden = true;
+      if (!w.length) S.shown[it.k] = false;
+    }
+  }
+
+  function sectionDone(cls) {
+    return catNone(cls) || S.items.some(it => it.c === cls && hasEntry(S.data[it.k]));
+  }
+
+  function refreshAll() {
+    document.querySelectorAll('.sec').forEach(sec => {
+      const cls = sec.dataset.c;
+      const items = S.items.filter(it => it.c === cls);
+      const n = items.filter(it => hasEntry(S.data[it.k])).length;
+      const done = sectionDone(cls);
+      sec.querySelector('.tally').textContent = n + ' of ' + items.length;
+      sec.querySelector('.check').hidden = !done;
+      sec.classList.toggle('done', done);
+      const foot = sec.querySelector('.sec-foot');
+      if (catNone(cls)) {
+        foot.innerHTML = `<div class="none-done"><span>✓ Confirmed: none on hand</span><button class="link" data-act="undo-none">Undo</button></div>`;
+      } else if (n === 0) {
+        foot.innerHTML = `<button class="none-btn" data-act="none">I have none of these</button>`;
+      } else {
+        foot.innerHTML = '';
+      }
+      foot.hidden = !foot.innerHTML;
+    });
+    const entered = S.items.filter(it => hasEntry(S.data[it.k])).length;
+    $('prog').innerHTML = '<strong>' + entered + '</strong> of ' + S.items.length + ' items entered';
+  }
+
+  function setNone(cls, on) {
+    const k = CAT + cls;
+    if (on) S.data[k] = { none: 1 }; else delete S.data[k];
+    S.dirty[k] = true;
+    changed();
+  }
+
+  function changed() {
+    saveLocal();
+    setSave('warn', 'Saving…');
+    clearTimeout(S.timer);
+    S.timer = setTimeout(flush, SAVE_DELAY);
   }
 
   $('list').addEventListener('click', ev => {
@@ -378,6 +590,12 @@
       head.setAttribute('aria-expanded', sec.classList.contains('open'));
       return;
     }
+    const act = ev.target.closest('[data-act]');
+    if (act && !S.locked) {
+      setNone(act.closest('.sec').dataset.c, act.dataset.act === 'none');
+      refreshAll();
+      return;
+    }
     const nb = ev.target.closest('.note-btn');
     if (nb) { nb.hidden = true; const ta = nb.nextElementSibling; ta.hidden = false; ta.focus(); }
   });
@@ -386,56 +604,43 @@
     const el = ev.target;
     if (!el.dataset.f || S.locked) return;
     const row = el.closest('.item');
-    const k = row.dataset.k;
-    if (el.dataset.f !== 'n') {
+    const it = S.byKey[row.dataset.k];
+    const f = el.dataset.f;
+    if (f !== 'n') {
       const clean = el.value.replace(/\D/g, '').slice(0, 5);
       if (clean !== el.value) el.value = clean;
     }
-    const e = Object.assign({}, S.data[k] || {});
-    const v = el.dataset.f === 'n' ? el.value.slice(0, 500) : el.value;
-    if (v === '' || (el.dataset.f === 'n' && !v.trim())) delete e[el.dataset.f];
-    else e[el.dataset.f] = el.dataset.f === 'n' ? v : Number(v);
-    if (Object.keys(e).length) S.data[k] = e; else delete S.data[k];
-    S.dirty[k] = true;
-    saveLocal();
-    refreshItem(row);
-    refreshTallies();
-    setSave('warn', 'Saving…');
-    clearTimeout(S.timer);
-    S.timer = setTimeout(flush, SAVE_DELAY);
+    const e = Object.assign({}, S.data[it.k] || {});
+    const v = f === 'n' ? el.value.slice(0, 500) : el.value;
+    if (v === '' || (f === 'n' && !v.trim())) delete e[f];
+    else e[f] = f === 'n' ? v : Number(v);
+    if (f !== 'n') delete e.ok;                         // a changed count needs a fresh confirmation
+    if (Object.keys(e).length) S.data[it.k] = e; else delete S.data[it.k];
+    S.dirty[it.k] = true;
+    if (hasCount(e) && catNone(it.c)) setNone(it.c, false);   // typing a count un-does "none on hand"
+    refreshItem(row, false);
+    refreshAll();
+    changed();
   });
-
-  function refreshItem(row) {
-    const it = S.byKey[row.dataset.k];
-    const e = S.data[it.k] || {};
-    row.querySelectorAll('input[data-f]').forEach(inp => inp.classList.toggle('has', inp.value !== ''));
-    const w = row.querySelector('.warn-msg');
-    if (it.q > 1 && e.l != null && e.l >= it.q) {
-      w.textContent = `That's a full package or more (${it.q} per package). Count unopened packages under Full packages.`;
-      w.hidden = false;
-    } else w.hidden = true;
-  }
-  function refreshTallies() {
-    document.querySelectorAll('.sec').forEach(sec => {
-      const keys = [...sec.querySelectorAll('.item')].map(r => r.dataset.k);
-      const n = keys.filter(k => S.data[k]).length;
-      const t = sec.querySelector('.tally');
-      t.textContent = n + ' of ' + keys.length;
-      t.classList.toggle('done', n === keys.length);
-    });
-    $('prog').innerHTML = '<strong>' + Object.keys(S.data).length + '</strong> of ' + S.items.length + ' items entered';
-  }
+  // Show warnings once they leave the box, not mid-typing.
+  $('list').addEventListener('change', ev => {
+    const row = ev.target.closest('.item');
+    if (row && ev.target.dataset.f && ev.target.dataset.f !== 'n') refreshItem(row, true);
+  });
 
   // search + "not entered" filter
   function applyFilter() {
-    const q = $('search').value.trim().toLowerCase();
+    const q = norm($('search').value);
+    const qDigits = q.replace(/\D/g, '');
     const blankOnly = $('onlyBlank').getAttribute('aria-pressed') === 'true';
     let any = false;
     document.querySelectorAll('.sec').forEach(sec => {
       let shown = 0;
       sec.querySelectorAll('.item').forEach(row => {
         const it = S.byKey[row.dataset.k];
-        const hit = (!q || (it.d + ' ' + it.b + ' ' + it.s).toLowerCase().includes(q)) && (!blankOnly || !S.data[it.k]);
+        const text = norm([it.d, it.b, it.s, it.st, it.hl, it.no].join(' '));
+        const byNo = qDigits.length >= 3 && it.no && it.no.replace(/\D/g, '').includes(qDigits);
+        const hit = (!q || text.includes(q) || byNo) && (!blankOnly || !hasEntry(S.data[it.k]));
         row.hidden = !hit; if (hit) shown++;
       });
       sec.hidden = !shown; if (shown) any = true;
@@ -462,7 +667,7 @@
     const sentJson = {};
     Object.keys(sent).forEach(k => { sentJson[k] = JSON.stringify(sent[k]); });
     S.inflight = true;
-    run('saveDraft', [S.site.id, S.check, sent], res => {
+    run('saveDraft', [S.site.id, S.pin, sent], res => {
       S.inflight = false; S.retry = 0;
       Object.keys(sentJson).forEach(k => {
         if (JSON.stringify(S.data[k] || null) === sentJson[k]) delete S.dirty[k];   // unchanged since send
@@ -474,13 +679,10 @@
       S.inflight = false;
       const msg = String((e && e.message) || e);
       if (/SUBMITTED/.test(msg)) { S.locked = true; setSave('bad', 'Already submitted'); return; }
-      if (/CHECK|NOT_FOUND/.test(msg)) { setSave('bad', 'Not saved'); alert(errText(e)); return; }
+      if (/^(Error: )?(PIN|NOT_FOUND)/.test(msg)) { setSave('bad', 'Not saved'); alert(errText(e)); return; }
       S.retry++;
-      const wait = Math.min(30000, 2000 * Math.pow(2, S.retry - 1));
-      setSave('warn', navigator.onLine === false
-        ? 'Offline. Saved on this device, will sync'
-        : 'Not saved yet, retrying');
-      S.timer = setTimeout(flush, wait);
+      setSave('warn', navigator.onLine === false ? 'Offline. Saved on this device, will sync' : 'Not saved yet, retrying');
+      S.timer = setTimeout(flush, Math.min(30000, 2000 * Math.pow(2, S.retry - 1)));
     });
   }
   window.addEventListener('online', flush);
@@ -489,46 +691,126 @@
     if (S.site && Object.keys(S.dirty).length) { ev.preventDefault(); ev.returnValue = ''; }
   });
 
-  // ---------- 4. review + submit ----------
-  $('reviewBtn').addEventListener('click', () => {
-    const entered = Object.keys(S.data).length;
-    const blank = S.items.length - entered;
-    const warns = S.items.filter(it => { const e = S.data[it.k]; return e && it.q > 1 && e.l != null && e.l >= it.q; });
+  // ---------- 4. review ----------
+  $('reviewBtn').addEventListener('click', () => { renderReview(); show('review'); });
+  $('backBtn').addEventListener('click', () => { show('count'); });
+
+  function renderReview() {
+    const entered = S.items.filter(it => hasEntry(S.data[it.k])).length;
     const notes = S.items.filter(it => S.data[it.k] && S.data[it.k].n).length;
-    $('rBody').innerHTML =
-      `<div class="stat"><strong>${entered}</strong> items entered</div>` +
-      `<div class="stat"><strong>${blank}</strong> left blank (counted as none on hand)</div>` +
-      (notes ? `<div class="stat"><strong>${notes}</strong> ${notes === 1 ? 'note' : 'notes'} for the reviewer</div>` : '') +
-      (warns.length ? `<p style="margin-top:12px">Loose units look like full packages on these. Check them before you submit:</p>
-        <ul>${warns.map(it => `<li>${esc(it.d)}</li>`).join('')}</ul>` : '') +
-      `<p style="margin-top:12px">After you submit, you can't make changes without contacting the inventory team.</p>`;
+    $('rStats').innerHTML =
+      `<div class="stat"><strong>${entered}</strong> of ${S.items.length} items entered. Blank items count as none on hand.</div>` +
+      (notes ? `<div class="stat"><strong>${notes}</strong> ${notes === 1 ? 'note' : 'notes'} for the reviewer</div>` : '');
+
+    const open = S.classes.filter(c => !sectionDone(c));
+    $('rCats').innerHTML = open.length ? `
+      <h2>Sections with nothing entered</h2>
+      <p class="lede">Count these, or confirm you have none.</p>
+      ${open.map(c => `<div class="rv flag" data-c="${esc(c)}"><div class="t">${esc(c)}</div>
+        <div class="acts"><button class="quiet" data-r="goto">Go to section</button>
+        <button class="quiet" data-r="none">I have none of these</button></div></div>`).join('')}` : '';
+
+    const flagged = S.items.map(it => ({ it, w: warnings(it, true) })).filter(x => x.w.length);
+    $('rFlags').innerHTML = flagged.length ? `
+      <h2>Please double-check</h2>
+      <p class="lede">Fix the count, or confirm it's correct.</p>
+      ${flagged.map(({ it, w }) => {
+        const ok = !!(S.data[it.k] && S.data[it.k].ok);
+        return `<div class="rv flag${ok ? ' cleared' : ''}" data-k="${esc(it.k)}">
+          <div class="t">${titleHtml(it)}</div>
+          <div class="m lede" style="margin:0">${esc(metaText(it))}${it.no && it.no !== '0' ? ', Item # ' + esc(it.no) : ''}</div>
+          <div class="you">You entered: <strong>${esc(youEntered(it))}</strong></div>
+          <div class="warn-msg">${w.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+          <div class="acts"><button class="quiet" data-r="fix">Fix it</button>
+            <label class="confirm"><input type="checkbox" data-r="ok"${ok ? ' checked' : ''}> I counted this correctly</label></div>
+        </div>`;
+      }).join('')}` : '';
+    updateGate();
+  }
+
+  function updateGate() {
+    const openCats = S.classes.filter(c => !sectionDone(c)).length;
+    const unconfirmed = S.items.filter(it => warnings(it, true).length && !(S.data[it.k] && S.data[it.k].ok)).length;
+    const left = [];
+    if (openCats) left.push(openCats + (openCats === 1 ? ' section' : ' sections') + ' to count or confirm as none');
+    if (unconfirmed) left.push(unconfirmed + (unconfirmed === 1 ? ' item' : ' items') + ' to fix or confirm');
+    $('rGate').textContent = left.length ? 'Before you submit: ' + left.join(' and ') + '.' : 'Everything is checked. Ready to submit.';
+    $('rGate').classList.toggle('ready', !left.length);
+    $('submitBtn').disabled = left.length > 0;
     $('rErr').textContent = '';
-    $('submitBtn').disabled = false; $('submitBtn').textContent = 'Submit count';
-    $('review').showModal();
+  }
+
+  $('review').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-r]');
+    if (!b) return;
+    const card = b.closest('.rv');
+    if (b.dataset.r === 'none') { setNone(card.dataset.c, true); renderReview(); return; }
+    if (b.dataset.r === 'goto') { goTo(document.querySelector(`.sec[data-c="${CSS.escape(card.dataset.c)}"]`)); return; }
+    if (b.dataset.r === 'fix') { goTo(document.querySelector(`.item[data-k="${CSS.escape(card.dataset.k)}"]`)); }
   });
-  $('keepBtn').addEventListener('click', () => $('review').close());
+  $('review').addEventListener('change', ev => {
+    if (ev.target.dataset.r !== 'ok') return;
+    const k = ev.target.closest('.rv').dataset.k;
+    const e = Object.assign({}, S.data[k] || {});
+    if (ev.target.checked) e.ok = 1; else delete e.ok;
+    if (Object.keys(e).length) S.data[k] = e; else delete S.data[k];
+    S.dirty[k] = true;
+    ev.target.closest('.rv').classList.toggle('cleared', ev.target.checked);
+    changed();
+    updateGate();
+  });
+
+  function goTo(el) {
+    applyFilterReset();
+    show('count');
+    const sec = el.classList.contains('sec') ? el : el.closest('.sec');
+    sec.classList.add('open'); sec.firstElementChild.setAttribute('aria-expanded', 'true');
+    refreshAll();
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center' });
+      if (el.classList.contains('item')) {
+        el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+        const inp = el.querySelector('input'); if (inp) inp.focus({ preventScroll: true });
+      }
+    });
+  }
+  function applyFilterReset() {
+    $('search').value = ''; $('onlyBlank').setAttribute('aria-pressed', 'false'); applyFilter();
+  }
+
   $('submitBtn').addEventListener('click', () => {
     if (S.inflight) { $('rErr').textContent = 'Still saving. Try again in a few seconds.'; return; }
     clearTimeout(S.timer);
     $('submitBtn').disabled = true; $('submitBtn').textContent = 'Submitting…';
-    run('submitCount', [S.site.id, S.check, changesFromDirty()], res => {
+    run('submitCount', [S.site.id, S.pin, changesFromDirty()], res => {
       S.dirty = {}; S.locked = true; store.del(localKey());
-      $('review').close();
-      showDone('Count submitted', 'Submitted ' + res.submitted + ' for ' + S.site.person + ', ' + S.site.state +
-        '. ' + res.entered + ' of ' + res.total + ' items entered. The inventory team will contact you if they have questions.');
+      $('submitBtn').textContent = 'Submit count';
+      showDone(res);
     }, e => {
       $('submitBtn').disabled = false; $('submitBtn').textContent = 'Submit count';
       const msg = String((e && e.message) || e);
-      $('rErr').textContent = /SUBMITTED|CHECK|NOT_FOUND/.test(msg) ? errText(e)
+      $('rErr').textContent = /SUBMITTED|PIN|NOT_FOUND/.test(msg) ? errText(e)
         : 'Not submitted. Your count is saved on this device. Try again when you have signal.';
     });
   });
 
-  function showDone(title, text) {
-    $('doneTitle').textContent = title; $('doneText').textContent = text; show('done');
+  // ---------- 5. done ----------
+  function showDone(res) {
+    const st = S.settings;
+    $('doneTitle').textContent = st.ThankYouTitle || 'Thank you!';
+    $('doneText').textContent = st.ThankYouMessage || '';
+    $('doneMeta').textContent = res
+      ? 'Submitted ' + res.submitted + ' for ' + S.site.person + ', ' + S.site.state + ', ' + siteText(S.site) + '. ' +
+        res.entered + ' of ' + res.total + ' items entered.'
+      : 'This count for ' + S.site.person + ', ' + siteText(S.site) + ' has been submitted.';
+    const contacts = [1, 2].map(n => ({ name: st['Contact' + n + 'Name'], info: st['Contact' + n + 'Info'] }))
+      .filter(c => c.name);
+    $('doneContacts').innerHTML = contacts.length ? `<h2>Questions?</h2><ul class="contacts">${
+      contacts.map(c => `<li><strong>${esc(c.name)}</strong>${esc(c.info || '')}</li>`).join('')}</ul>` : '';
+    show('done');
   }
   $('startOverBtn').addEventListener('click', () => {
-    S.site = null; $('person').value = ''; $('check').value = ''; onPerson(); show('pick');
+    S.site = null; fillPeople($('person').value); show('pick');   // keeps the PIN for the same person's other sites
   });
 })();
 </script>
